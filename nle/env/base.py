@@ -35,9 +35,7 @@ SKIP_EXCEPTIONS = (b"eat", b"attack", b"direction?", b"pray")
 NLE_SPACE_ITEMS = (
     (
         "glyphs",
-        gym.spaces.Box(
-            low=0, high=nethack.MAX_GLYPH, **nethack.OBSERVATION_DESC["glyphs"]
-        ),
+        gym.spaces.Box(low=0, high=nethack.MAX_GLYPH, **nethack.OBSERVATION_DESC["glyphs"]),
     ),
     ("chars", gym.spaces.Box(low=0, high=255, **nethack.OBSERVATION_DESC["chars"])),
     ("colors", gym.spaces.Box(low=0, high=15, **nethack.OBSERVATION_DESC["colors"])),
@@ -103,9 +101,7 @@ NLE_SPACE_ITEMS = (
     ),
     (
         "screen_descriptions",
-        gym.spaces.Box(
-            low=0, high=127, **nethack.OBSERVATION_DESC["screen_descriptions"]
-        ),
+        gym.spaces.Box(low=0, high=127, **nethack.OBSERVATION_DESC["screen_descriptions"]),
     ),
     (
         "tty_chars",
@@ -246,9 +242,7 @@ class NLE(gym.Env):
             else:  # Empty savedir: We create our unique savedir inside nle_data/.
                 parent_dir = os.path.join(os.getcwd(), "nle_data")
                 os.makedirs(parent_dir, exist_ok=True)
-                self.savedir = tempfile.mkdtemp(
-                    prefix=time.strftime("%Y%m%d-%H%M%S_"), dir=parent_dir
-                )
+                self.savedir = tempfile.mkdtemp(prefix=time.strftime("%Y%m%d-%H%M%S_"), dir=parent_dir)
         except FileExistsError:
             logger.info("Using existing savedir: %s", self.savedir)
         else:
@@ -260,10 +254,7 @@ class NLE(gym.Env):
         self._observation_keys = list(observation_keys)
 
         if "internal" in self._observation_keys:
-            logger.warn(
-                "The 'internal' NLE observation was requested. "
-                "This might contain data that shouldn't be available to agents."
-            )
+            logger.warn("The 'internal' NLE observation was requested. " "This might contain data that shouldn't be available to agents.")
 
         # Observations we always need.
         for key in (
@@ -283,16 +274,12 @@ class NLE(gym.Env):
         self._internal_index = self._observation_keys.index("internal")
 
         self._original_observation_keys = observation_keys
-        self._original_indices = tuple(
-            self._observation_keys.index(key) for key in observation_keys
-        )
+        self._original_indices = tuple(self._observation_keys.index(key) for key in observation_keys)
 
         if self.savedir:
             ttyrec_version = ".ttyrec%i.bz2" % nethack.TTYREC_VERSION
             ttyrec_prefix = "nle.%i.%%i" % os.getpid()
-            self._ttyrec_pattern = os.path.join(
-                self.savedir, ttyrec_prefix + ttyrec_version
-            )
+            self._ttyrec_pattern = os.path.join(self.savedir, ttyrec_prefix + ttyrec_version)
             ttyrec = self._ttyrec_pattern % 0
             # Create an xlogfile with the same format of name.
             scoreprefix = ttyrec.replace("0" + ttyrec_version, "")
@@ -317,17 +304,12 @@ class NLE(gym.Env):
         self._episode = -1
 
         space_dict = dict(NLE_SPACE_ITEMS)
-        self.observation_space = gym.spaces.Dict(
-            {key: space_dict[key] for key in observation_keys}
-        )
+        self.observation_space = gym.spaces.Dict({key: space_dict[key] for key in observation_keys})
 
         self.action_space = gym.spaces.Discrete(len(self.actions))
 
     def _get_observation(self, observation):
-        return {
-            key: observation[i]
-            for key, i in zip(self._original_observation_keys, self._original_indices)
-        }
+        return {key: observation[i] for key, i in zip(self._original_observation_keys, self._original_indices)}
 
     def print_action_meanings(self):
         for a_idx, a in enumerate(self.actions):
@@ -359,9 +341,7 @@ class NLE(gym.Env):
         observation, done = self.nethack.step(self.actions[action])
         is_game_over = observation[self._program_state_index][0] == 1
         if is_game_over or not self._allow_all_modes:
-            observation, done = self._perform_known_steps(
-                observation, done, exceptions=True
-            )
+            observation, done = self._perform_known_steps(observation, done, exceptions=True)
 
         self._steps += 1
 
@@ -373,9 +353,7 @@ class NLE(gym.Env):
             end_status = self._is_episode_end(observation)
         end_status = self.StepStatus(done or end_status)
 
-        reward = float(
-            self._reward_fn(last_observation, action, observation, end_status)
-        )
+        reward = float(self._reward_fn(last_observation, action, observation, end_status))
 
         if end_status and not done:
             # Try to end the game nicely.
@@ -409,9 +387,7 @@ class NLE(gym.Env):
             new_ttyrec = self._ttyrec_pattern % self._episode
         else:
             new_ttyrec = None
-        self.last_observation = self.nethack.reset(
-            new_ttyrec, wizkit_items=wizkit_items
-        )
+        self.last_observation = self.nethack.reset(new_ttyrec, wizkit_items=wizkit_items)
 
         self._steps = 0
 
@@ -427,9 +403,7 @@ class NLE(gym.Env):
             self.last_observation, done = self.nethack.step(ASCII_SPACE)
             assert not done, "Game ended unexpectedly"
         else:
-            warnings.warn(
-                "Not in moveloop after 1000 tries, aborting (ttyrec: %s)." % new_ttyrec
-            )
+            warnings.warn("Not in moveloop after 1000 tries, aborting (ttyrec: %s)." % new_ttyrec)
             return self.reset(wizkit_items=wizkit_items)
 
         return self._get_observation(self.last_observation)
@@ -463,7 +437,7 @@ class NLE(gym.Env):
         if core is None:
             core = self._random.randrange(sys.maxsize)
         if disp is None:
-            disp = self._random.randrange(sys.maxsize)
+            disp = core
         self.nethack.set_initial_seeds(core, disp, reseed)
         return (core, disp, reseed)
 
@@ -499,9 +473,7 @@ class NLE(gym.Env):
                 for letter, line in zip(inv_letters, inv_strs):
                     if np.all(line == 0):
                         break
-                    print(
-                        letter.tobytes().decode("utf-8"), line.tobytes().decode("utf-8")
-                    )
+                    print(letter.tobytes().decode("utf-8"), line.tobytes().decode("utf-8"))
             except ValueError:  # inv_strs/letters not used.
                 pass
 
@@ -565,9 +537,7 @@ class NLE(gym.Env):
                     # stuff to eat, attack, and to select directions.
 
                     # do not skip if all allowed or the allowed message appears
-                    if self._allow_all_yn_questions or any(
-                        el in msg for el in SKIP_EXCEPTIONS
-                    ):
+                    if self._allow_all_yn_questions or any(el in msg for el in SKIP_EXCEPTIONS):
                         break
 
                 # Otherwise, auto-decline.
@@ -580,9 +550,7 @@ class NLE(gym.Env):
     def _quit_game(self, observation, done):
         """Smoothly quit a game."""
         # Get out of menus and windows.
-        observation, done = self._perform_known_steps(
-            observation, done, exceptions=False
-        )
+        observation, done = self._perform_known_steps(observation, done, exceptions=False)
 
         if done:
             return
@@ -593,9 +561,7 @@ class NLE(gym.Env):
             observation, done = self.nethack.step(a)
 
         # Answer final questions.
-        observation, done = self._perform_known_steps(
-            observation, done, exceptions=False
-        )
+        observation, done = self._perform_known_steps(observation, done, exceptions=False)
 
         if not done:
             # Somehow, the above logic failed us.
